@@ -1384,6 +1384,54 @@ public:
     }
 
     /**
+     * EJEMPLO ¡BORRAR DESPUES!
+    */
+    Ciphertext<Element> EvalExample(ConstCiphertext<Element> ciphertext1, ConstCiphertext<Element> ciphertext2) const{
+        TypeCheck(ciphertext1, ciphertext2);
+        return GetScheme()->EvalAdd(ciphertext1, ciphertext2);
+    }
+
+    /**
+   * Homomorphic product of two ciphertexts
+   * @param matrix1 first matrix
+   * @param matrix2 second matrix
+   * @return the result as a new ciphered matrix
+   */
+    std::vector<std::vector<Ciphertext<Element>>> EvalMultMatrix(
+        const std::vector<std::vector<ConstCiphertext<Element>>>& matrix1,
+        const std::vector<std::vector<ConstCiphertext<Element>>>& matrix2) {
+        
+        size_t rows1 = matrix1.size();
+        size_t cols1 = matrix1[0].size();
+        size_t rows2 = matrix2.size();
+        size_t cols2 = matrix2[0].size();
+    
+        if (cols1 != rows2) {
+            throw std::invalid_argument("Incompatible matrix dimensions for multiplication.");
+        }
+    
+        std::vector<std::vector<Ciphertext<Element>>> result(rows1, std::vector<Ciphertext<Element>>(cols2));
+    
+        for (size_t i = 0; i < rows1; ++i) {
+            for (size_t j = 0; j < cols2; ++j) {
+                Ciphertext<Element> sum;
+                for (size_t k = 0; k < cols1; ++k) {
+                    Ciphertext<Element> product = GetScheme()->EvalMult(matrix1[i][k], matrix2[k][j]);
+                    if (k == 0) {
+                        sum = product;
+                    } else {
+                        sum = GetScheme()->EvalAdd(sum, product);
+                    }
+                }
+                result[i][j] = sum;
+            }
+        }
+    
+        return result;
+    }
+    
+
+    /**
    * In-place homomorphic addition of two ciphertexts
    * @param ciphertext1 first addend
    * @param ciphertext2 second addend
