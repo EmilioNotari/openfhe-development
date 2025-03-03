@@ -1392,7 +1392,7 @@ public:
     }
 
     /**
-   * Homomorphic product of two ciphertexts
+   * Homomorphic product of two ciphertexts with no bootstrapping
    * @param matrix1 first matrix
    * @param matrix2 second matrix
    * @return the result as a new ciphered matrix
@@ -1429,6 +1429,50 @@ public:
     
         return result;
     }
+
+    /**
+   * Homomorphic product of two ciphertexts with bootstrapping
+   * @param matrix1 first matrix
+   * @param matrix2 second matrix
+   * @return the result as a new ciphered matrix
+   */
+    std::vector<std::vector<Ciphertext<Element>>> EvalMultMatrixWithBootstrapping(
+        const std::vector<std::vector<ConstCiphertext<Element>>>& matrix1,
+        const std::vector<std::vector<ConstCiphertext<Element>>>& matrix2) {
+        
+        size_t rows1 = matrix1.size();
+        size_t cols1 = matrix1[0].size();
+        size_t rows2 = matrix2.size();
+        size_t cols2 = matrix2[0].size();
+
+        if (cols1 != rows2) {
+            throw std::invalid_argument("Incompatible matrix dimensions for multiplication.");
+        }
+
+        std::vector<std::vector<Ciphertext<Element>>> result(rows1, std::vector<Ciphertext<Element>>(cols2));
+
+        for (size_t i = 0; i < rows1; ++i) {
+            for (size_t j = 0; j < cols2; ++j) {
+                Ciphertext<Element> sum;
+                for (size_t k = 0; k < cols1; ++k) {
+                    // Multiplicación homomórfica
+                    Ciphertext<Element> product = GetScheme()->EvalMult(matrix1[i][k], matrix2[k][j]); 
+                    product = GetScheme()->EvalBootstrap(product);
+
+                    if (k == 0) {
+                        sum = product;
+                    } else {
+                        sum = GetScheme()->EvalAdd(sum, product);
+                        sum = GetScheme()->EvalBootstrap(sum);
+                    }
+                }
+                result[i][j] = sum;
+            }
+        }
+
+        return result;
+    }
+
     
 
     /**

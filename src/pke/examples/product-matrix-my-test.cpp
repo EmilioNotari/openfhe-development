@@ -104,19 +104,6 @@
     auto start = std::chrono::high_resolution_clock::now();
 
     auto resultMatrix = cryptoContext->EvalMultMatrix(encryptedMatrix1, encryptedMatrix2);
-        
-    // // Multiplicación de matrices cifradas
-    // std::vector<std::vector<Ciphertext<DCRTPoly>>> resultMatrix(rows1, std::vector<Ciphertext<DCRTPoly>>(cols2));
-
-    // for (int i = 0; i < rows1; ++i) {
-    //     for (int j = 0; j < cols2; ++j) {
-    //         Ciphertext<DCRTPoly> sum = cryptoContext->EvalMult(encryptedMatrix1[i][0], encryptedMatrix2[0][j]);
-    //         for (int k = 1; k < cols1; ++k) {
-    //             sum = cryptoContext->EvalAdd(sum, cryptoContext->EvalMult(encryptedMatrix1[i][k], encryptedMatrix2[k][j]));
-    //         }
-    //         resultMatrix[i][j] = sum;
-    //     }
-    // }
 
     // Fin de la medición del tiempo
     auto end = std::chrono::high_resolution_clock::now();

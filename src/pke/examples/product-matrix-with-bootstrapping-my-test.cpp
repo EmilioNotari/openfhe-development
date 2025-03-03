@@ -33,67 +33,41 @@
   Simple example for BFVrns (integer arithmetic)
  */
 
-#include "openfhe.h"
-#include <vector>
-#include <iostream>
-#include <chrono>
-
-using namespace lbcrypto;
-
-int main() {
+ #include "openfhe.h"
+ #include <iostream>
+ #include <chrono> // Para medir el tiempo
+ 
+ using namespace lbcrypto;
+ 
+ int main() {
     // Configuración del contexto criptográfico
-    CCParams<CryptoContextCKKSRNS> parameters;
-    parameters.SetScalingModSize(59);     
-    parameters.SetScalingTechnique(FLEXIBLEAUTO);
-    parameters.SetFirstModSize(60);
-    parameters.SetMultiplicativeDepth(4);
-
-    SecretKeyDist secretKeyDist = UNIFORM_TERNARY;
-    parameters.SetSecretKeyDist(secretKeyDist);
-    parameters.SetSecurityLevel(HEStd_NotSet);
-    parameters.SetRingDim(1 << 12);
-
-    std::vector<uint32_t> levelBudget = {2, 2};
-
-    uint32_t levelsAvailableAfterBootstrap = 4;
-    usint depth = levelsAvailableAfterBootstrap + FHECKKSRNS::GetBootstrapDepth(levelBudget, secretKeyDist);
-    parameters.SetMultiplicativeDepth(depth);
-
+    CCParams<CryptoContextBFVRNS> parameters;
+    parameters.SetPlaintextModulus(65537);
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     cryptoContext->Enable(PKE);
-    cryptoContext->Enable(KEYSWITCH);
     cryptoContext->Enable(LEVELEDSHE);
-    cryptoContext->Enable(ADVANCEDSHE);
-    cryptoContext->Enable(FHE);
-
-    usint ringDim = cryptoContext->GetRingDimension();
-    usint numSlots = ringDim / 2;
-    std::cout << "CKKS scheme is using ring dimension " << ringDim << std::endl << std::endl;
-
-    cryptoContext->EvalBootstrapSetup(levelBudget);
  
     // Generación de claves
     KeyPair<DCRTPoly> keyPair = cryptoContext->KeyGen();
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
-    cryptoContext->EvalBootstrapKeyGen(keyPair.secretKey, numSlots);
 
     // Parámetro para definir el tamaño de las matrices cuadradas
-    int numRowsAndCols = 4;
+    int numRowsAndCols = 2;
  
     // Generación automática de matrices con números consecutivos
-    std::vector<std::vector<double>> matrix1(numRowsAndCols, std::vector<double>(numRowsAndCols));
-    std::vector<std::vector<double>> matrix2(numRowsAndCols, std::vector<double>(numRowsAndCols));
+    std::vector<std::vector<int64_t>> matrix1(numRowsAndCols, std::vector<int64_t>(numRowsAndCols));
+    std::vector<std::vector<int64_t>> matrix2(numRowsAndCols, std::vector<int64_t>(numRowsAndCols));
 
     int value = 1;
     for (int i = 0; i < numRowsAndCols; ++i) {
         for (int j = 0; j < numRowsAndCols; ++j) {
-            matrix1[i][j] = value += 1.25;
+            matrix1[i][j] = value++;
         }
     }
 
     for (int i = 0; i < numRowsAndCols; ++i) {
         for (int j = 0; j < numRowsAndCols; ++j) {
-            matrix2[i][j] = value += 2.15;
+            matrix2[i][j] = value++;
         }
     }
  
@@ -110,26 +84,26 @@ int main() {
     }
 
     // Cifrado de las matrices
-    std::vector<std::vector<ConstCiphertext<DCRTPoly>>> encryptedMatrix1(rows2, std::vector<ConstCiphertext<DCRTPoly>>(cols2));
+    std::vector<std::vector<ConstCiphertext<DCRTPoly>>> encryptedMatrix1(rows1, std::vector<ConstCiphertext<DCRTPoly>>(cols1));
     std::vector<std::vector<ConstCiphertext<DCRTPoly>>> encryptedMatrix2(rows2, std::vector<ConstCiphertext<DCRTPoly>>(cols2));
 
+    
     for (int i = 0; i < rows1; ++i) {
         for (int j = 0; j < cols1; ++j) {
-            encryptedMatrix1[i][j] = cryptoContext->Encrypt(keyPair.publicKey, cryptoContext->MakeCKKSPackedPlaintext(std::vector<double>{matrix1[i][j]}));
+            encryptedMatrix1[i][j] = cryptoContext->Encrypt(keyPair.publicKey, cryptoContext->MakePackedPlaintext(std::vector<int64_t>{matrix1[i][j]}));
         }
     }
-
+    
     for (int i = 0; i < rows2; ++i) {
         for (int j = 0; j < cols2; ++j) {
-            encryptedMatrix2[i][j] = cryptoContext->Encrypt(keyPair.publicKey, cryptoContext->MakeCKKSPackedPlaintext(std::vector<double>{matrix2[i][j]}));
+            encryptedMatrix2[i][j] = cryptoContext->Encrypt(keyPair.publicKey, cryptoContext->MakePackedPlaintext(std::vector<int64_t>{matrix2[i][j]}));
         }
     }
 
     // Inicio de la medición del tiempo
     auto start = std::chrono::high_resolution_clock::now();
 
-    //auto resultMatrix = cryptoContext->EvalMultMatrixWithBootstrapping(encryptedMatrix1, encryptedMatrix2);
-    auto resultMatrix = cryptoContext->EvalMultMatrix(encryptedMatrix1, encryptedMatrix2);
+    auto resultMatrix = cryptoContext->EvalMultMatrixWithBootstrapping(encryptedMatrix1, encryptedMatrix2);
 
     // Fin de la medición del tiempo
     auto end = std::chrono::high_resolution_clock::now();
@@ -142,11 +116,11 @@ int main() {
         for (int j = 0; j < cols2; ++j) {
             Plaintext plaintext;
             cryptoContext->Decrypt(keyPair.secretKey, resultMatrix[i][j], &plaintext);
-            decryptedResult[i][j] = plaintext->GetRealPackedValue()[0];
+            decryptedResult[i][j] = plaintext->GetPackedValue()[0];
         }
     }
- 
-    //  // Impresión del resultado
+
+    // Impresión del resultado
     std::cout << "Resultado de la multiplicación de matrices:" << std::endl;
     for (int i = 0; i < rows1; ++i) {
     for (int j = 0; j < cols2; ++j) {
@@ -154,9 +128,9 @@ int main() {
         }
         std::cout << std::endl;
     }
- 
-     // Impresión del tiempo de ejecución
-     std::cout << "Tiempo de ejecución: " << elapsed.count() << " segundos" << std::endl;
+
+    //Impresión del tiempo de ejecución
+    std::cout << "Tiempo de ejecución: " << elapsed.count() << " segundos" << std::endl;
  
      return 0;
  }
