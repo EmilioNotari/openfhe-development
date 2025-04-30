@@ -163,6 +163,9 @@ void IterativeBootstrapExample() {
     Plaintext result;
     cryptoContext->Decrypt(keyPair.secretKey, ciphertextAfter, &result);
     result->SetLength(numSlots);
+    auto actualResultOneIteration = result->GetCKKSPackedValue();
+
+    std::cout << "Output after one iteration of bootstrapping: " << actualResultOneIteration << std::endl;
     uint32_t precision =
         std::floor(CalculateApproximationError(result->GetCKKSPackedValue(), ptxt->GetCKKSPackedValue()));
     std::cout << "Bootstrapping precision after 1 iteration: " << precision << std::endl;

@@ -78,7 +78,7 @@ int main() {
     cryptoContext->EvalBootstrapKeyGen(keyPair.secretKey, numSlots);
 
     // Parámetro para definir el tamaño de las matrices cuadradas
-    int numRowsAndCols = 4;
+    int numRowsAndCols = 16;
  
     // Generación automática de matrices con números consecutivos
     std::vector<std::vector<double>> matrix1(numRowsAndCols, std::vector<double>(numRowsAndCols));
@@ -128,8 +128,8 @@ int main() {
     // Inicio de la medición del tiempo
     auto start = std::chrono::high_resolution_clock::now();
 
-    //auto resultMatrix = cryptoContext->EvalMultMatrixWithBootstrapping(encryptedMatrix1, encryptedMatrix2);
-    auto resultMatrix = cryptoContext->EvalMultMatrix(encryptedMatrix1, encryptedMatrix2);
+    auto resultMatrix = cryptoContext->EvalMultMatrixWithBootstrapping(encryptedMatrix1, encryptedMatrix2);
+    //auto resultMatrix = cryptoContext->EvalMultMatrix(encryptedMatrix1, encryptedMatrix2);
 
     // Fin de la medición del tiempo
     auto end = std::chrono::high_resolution_clock::now();

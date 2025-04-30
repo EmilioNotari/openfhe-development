@@ -41,7 +41,7 @@
  
  int main() {
     // Configuración del contexto criptográfico
-    CCParams<CryptoContextBFVRNS> parameters;
+    CCParams<CryptoContextBGVRNS> parameters;
     parameters.SetPlaintextModulus(65537);
     CryptoContext<DCRTPoly> cryptoContext = GenCryptoContext(parameters);
     cryptoContext->Enable(PKE);
@@ -52,7 +52,7 @@
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
 
     // Parámetro para definir el tamaño de las matrices cuadradas
-    int numRowsAndCols = 2;
+    int numRowsAndCols = 64;
  
     // Generación automática de matrices con números consecutivos
     std::vector<std::vector<int64_t>> matrix1(numRowsAndCols, std::vector<int64_t>(numRowsAndCols));

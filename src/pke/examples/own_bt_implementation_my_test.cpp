@@ -142,7 +142,7 @@ void SimpleBootstrapExample() {
     cryptoContext->EvalMultKeyGen(keyPair.secretKey);
     cryptoContext->EvalBootstrapKeyGen(keyPair.secretKey, numSlots);
 
-    std::vector<double> x = {0.25, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0, 5.0};
+    std::vector<double> x = {1.0, 2.0, 3.0};
     size_t encodedLength  = x.size();
 
     // We start with a depleted ciphertext that has used up all of its levels.
@@ -153,7 +153,7 @@ void SimpleBootstrapExample() {
     * depth-1 viene de que el texto plano está asociado a un cifrado que ya 
     * ha consumido casi toda su profundidad
     */
-    Plaintext ptxt = cryptoContext->MakeCKKSPackedPlaintext(x, 1, depth - 1);
+    Plaintext ptxt = cryptoContext->MakeCKKSPackedPlaintext(x);
 
     ptxt->SetLength(encodedLength);
     std::cout << "Input: " << ptxt << std::endl;
@@ -164,14 +164,49 @@ void SimpleBootstrapExample() {
 
     // Perform the bootstrapping operation. The goal is to increase the number of levels remaining
     // for HE computation.
-    auto ciphertextAfter = cryptoContext->EvalBootstrap(ciph);
+    std::vector<double> expected;
+    std::vector<double> actual;
+    
+    Ciphertext<DCRTPoly> ciphertextIter = ciph;
+    std::vector<double> plain = x;
+    
+    for (int i = 0; i < 45; ++i) {
+        std::cout << "\n########## Iteración " << i + 1 << " ##########\n";
+    
+        // Multiplicación por 2 (homomórfica)
+        ciphertextIter = cryptoContext->EvalMult(ciphertextIter, 2.0);
+        for (auto& val : plain) {
+            val *= 2;
+        }
+    
+        // Bootstrapping
+        auto start = std::chrono::high_resolution_clock::now();
+        ciphertextIter = cryptoContext->EvalBootstrap(ciphertextIter);
+        auto end = std::chrono::high_resolution_clock::now();
+    
+        std::chrono::duration<double> elapsed = end - start;
+        std::cout << "Bootstrapping time (s): " << elapsed.count() << std::endl;
+    
+        // Decrypt and display result
+        Plaintext result;
+        cryptoContext->Decrypt(keyPair.secretKey, ciphertextIter, &result);
+        result->SetLength(encodedLength);
+    
+        std::cout << "Decrypted \n\t" << result << std::endl;
+    
+        double exp_val = plain[0];
+        double act_val = result->GetRealPackedValue()[0];
+        double error = std::abs(exp_val - act_val);
 
-    std::cout << "Number of levels remaining after bootstrapping: "
-              << depth - ciphertextAfter->GetLevel() - (ciphertextAfter->GetNoiseScaleDeg() - 1) << std::endl
-              << std::endl;
+        expected.push_back(exp_val);
+        actual.push_back(act_val);
 
-    Plaintext result;
-    cryptoContext->Decrypt(keyPair.secretKey, ciphertextAfter, &result);
-    result->SetLength(encodedLength);
-    std::cout << "Output after bootstrapping \n\t" << result << std::endl;
+        std::cout << std::fixed << std::setprecision(15); 
+
+        std::cout << "Expected: " << exp_val << "\n";
+        std::cout << "Result  : " << act_val << "\n";
+        std::cout << "Error   : " << error << "\n";
+
+    }
+    
 }

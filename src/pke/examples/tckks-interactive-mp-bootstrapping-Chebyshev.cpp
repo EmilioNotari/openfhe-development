@@ -110,7 +110,7 @@ void TCKKSCollectiveBoot(enum ScalingTechnique scaleTech) {
 	* you do not need to set the ring dimension.
 	*/
     parameters.SetSecurityLevel(HEStd_128_classic);
-
+    
     /*  A3) Scaling parameters.
 	* By default, we set the modulus sizes and rescaling technique to the following values
 	* to obtain a good precision and performance tradeoff. We recommend keeping the parameters
@@ -163,7 +163,7 @@ void TCKKSCollectiveBoot(enum ScalingTechnique scaleTech) {
 
     usint ringDim = cryptoContext->GetRingDimension();
     // This is the maximum number of slots that can be used for full packing.
-    usint maxNumSlots = ringDim / 2;
+    usint maxNumSlots = ringDim / 2;        // En CKKS es así
     std::cout << "TCKKS scheme is using ring dimension " << ringDim << std::endl;
     std::cout << "TCKKS scheme number of slots         " << batchSize << std::endl;
     std::cout << "TCKKS scheme max number of slots     " << maxNumSlots << std::endl;
@@ -201,7 +201,7 @@ void TCKKSCollectiveBoot(enum ScalingTechnique scaleTech) {
 
     // Round 2 (party B)
     kp2                  = cryptoContext->MultipartyKeyGen(kp1.publicKey);
-    auto evalMultKey2    = cryptoContext->MultiKeySwitchGen(kp2.secretKey, kp2.secretKey, evalMultKey);
+    auto evalMultKey2    = cryptoContext->MultiKeySwitchGen(kp2.secretKey, kp2.secretKey, evalMultKey); // ?? Que sentido tiene?
     auto evalMultAB      = cryptoContext->MultiAddEvalKeys(evalMultKey, evalMultKey2, kp2.publicKey->GetKeyTag());
     auto evalMultBAB     = cryptoContext->MultiMultEvalKey(kp2.secretKey, evalMultAB, kp2.publicKey->GetKeyTag());
     auto evalSumKeysB    = cryptoContext->MultiEvalSumKeyGen(kp2.secretKey, evalSumKeys, kp2.publicKey->GetKeyTag());
@@ -214,7 +214,7 @@ void TCKKSCollectiveBoot(enum ScalingTechnique scaleTech) {
     /////////////////////
     // Round 3 (party C) - Lead Party (who encrypts and finalizes the bootstrapping protocol)
     kp3                 = cryptoContext->MultipartyKeyGen(kp2.publicKey);
-    auto evalMultKey3   = cryptoContext->MultiKeySwitchGen(kp3.secretKey, kp3.secretKey, evalMultKey);
+    auto evalMultKey3   = cryptoContext->MultiKeySwitchGen(kp3.secretKey, kp3.secretKey, evalMultKey); // ?? Que sentido tiene?
     auto evalMultABC    = cryptoContext->MultiAddEvalKeys(evalMultAB, evalMultKey3, kp3.publicKey->GetKeyTag());
     auto evalMultBABC   = cryptoContext->MultiMultEvalKey(kp2.secretKey, evalMultABC, kp3.publicKey->GetKeyTag());
     auto evalMultAABC   = cryptoContext->MultiMultEvalKey(kp1.secretKey, evalMultABC, kp3.publicKey->GetKeyTag());
@@ -224,8 +224,7 @@ void TCKKSCollectiveBoot(enum ScalingTechnique scaleTech) {
     cryptoContext->InsertEvalMultKey({evalMultFinal2});
 
     auto evalSumKeysC = cryptoContext->MultiEvalSumKeyGen(kp3.secretKey, evalSumKeys, kp3.publicKey->GetKeyTag());
-    auto evalSumKeysJoin2 =
-        cryptoContext->MultiAddEvalSumKeys(evalSumKeysJoin, evalSumKeysC, kp3.publicKey->GetKeyTag());
+    auto evalSumKeysJoin2 = cryptoContext->MultiAddEvalSumKeys(evalSumKeysJoin, evalSumKeysC, kp3.publicKey->GetKeyTag());
     cryptoContext->InsertEvalSumKey(evalSumKeysJoin2);
 
     if (!kp1.good()) {
